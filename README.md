@@ -24,7 +24,7 @@ Versión inicial de desarrollo 0.2.0. El APK publicado está en `downloads/`; su
 2. Abrir **Apps → Todas** o **Del equipo**, comprobar la lista y usar Actualizar lista si se acaba de instalar otra app.
 3. Abrir **Radio FM → Elegir aplicación FM** y seleccionar la app original. Se sugieren posibles coincidencias por nombre, pero la elección es manual.
 4. En **Ajustes → Aplicaciones preferidas del radio**, vincular Bluetooth, teléfono, música, navegador e inicio original. Solo se crean asociaciones en SkyNCar.
-5. El acceso **Inicio original** permite volver a la interfaz del fabricante una vez elegido. También se puede cambiar la app de inicio predeterminada desde Ajustes de Android.
+5. El acceso **Inicio original** permite volver a la interfaz del fabricante una vez elegido. También se puede cambiar la app de inicio predeterminada desde **Ajustes de SkyNCar → Dejar SkyNCar y elegir otro inicio**. Este botón abre los ajustes HOME de Android; el usuario elige el launcher anterior. No desinstala SkyNCar ni cambia la elección sin confirmación del usuario.
 
 No se garantiza que todas las funciones propietarias del equipo tengan actividades exportadas. Si falta alguna, hace falta inspeccionar el modelo, paquetes y actividades reales del radio; las pruebas de navegador usan una simulación explícita del puente nativo y no prueban el hardware.
 

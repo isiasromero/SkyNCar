@@ -51,6 +51,7 @@ const http=require('node:http');const fs=require('node:fs');const path=require('
  await nativePage.reload();await nativePage.locator('[data-page="radio"]').click();assert.match(await nativePage.locator('#screen').innerText(),/Radio FM original/);
  await nativePage.locator('[data-page="settings"]').click();await nativePage.locator('[data-pick="navigation"]').click();await nativePage.locator('[data-component="com.waze/.Main"]').click();
  assert.match(await nativePage.locator('.app-assignments').innerText(),/Waze/);
+ await nativePage.getByRole('button',{name:'Dejar SkyNCar y elegir otro inicio',exact:true}).click();assert.equal(await nativePage.evaluate(()=>nativeCalls[nativeCalls.length-1]),'homeSettings');
  await nativePage.locator('[data-pick="factory"]').click();await nativePage.locator('[data-component="com.vendor.home/.Home"]').click();await nativePage.locator('[data-page="home"]').click();await nativePage.locator('[data-action="factory"]').click();assert.equal(await nativePage.evaluate(()=>nativeCalls[nativeCalls.length-1]),'factory');
  await nativePage.close();
  console.log('Native bridge UI contract: factory/system activities, search, favorites, distinct Waze/Maps, FM assignment persistence and original home access passed.');
