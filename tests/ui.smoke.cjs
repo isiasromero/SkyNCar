@@ -10,7 +10,7 @@ const http=require('node:http');const fs=require('node:fs');const path=require('
  browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',args:['--no-sandbox']});const page=await browser.newPage({viewport:{width:1024,height:600}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.goto('http://127.0.0.1:'+server.address().port);await page.locator('h1').filter({hasText:'Hola, Isias'}).waitFor();
  for(const id of ['navigation','music','phone','vehicle','split','apps','radio','settings','home']){await page.locator(`[data-page="${id}"]`).click();assert(await page.locator('#screen').innerText());}
- await page.locator('[data-page="settings"]').click();await page.locator('[name="name"]').fill('Isias Romero');await page.locator('[name="theme"]').selectOption('light');await page.getByText('Guardar preferencias',{exact:true}).click();assert.equal(await page.locator('html').getAttribute('data-theme'),'light');
+ await page.locator('#profile-settings').click();await page.getByLabel('Tu nombre para el saludo').fill('Isias Romero');await page.locator('[name="theme"]').selectOption('light');await page.getByText('Guardar preferencias',{exact:true}).click();assert.equal(await page.locator('html').getAttribute('data-theme'),'light');
  await page.reload();await page.locator('h1').filter({hasText:'Hola, Isias Romero'}).waitFor();
  await page.locator('[data-page="vehicle"]').click();await page.locator('[name="current"]').fill('12000');await page.locator('[name="last"]').fill('10000');await page.locator('[name="interval"]').fill('5000');await page.getByText('Guardar mantenimiento',{exact:true}).click();assert.match(await page.locator('#screen').innerText(),/3[.,]000 km/);
  await page.reload();await page.locator('[data-page="vehicle"]').click();assert.equal(await page.locator('[name="current"]').inputValue(),'12000');
@@ -33,6 +33,7 @@ const http=require('node:http');const fs=require('node:fs');const path=require('
      open:a=>window.nativeCalls.push(a),app:a=>window.nativeCalls.push(a)};
  });
  await nativePage.goto('http://127.0.0.1:'+server.address().port);
+ await nativePage.getByRole('button',{name:'Abrir ajustes de Android',exact:true}).click();assert.equal(await nativePage.evaluate(()=>nativeCalls.pop()),'settings');
  await nativePage.getByRole('button',{name:'Waze',exact:true}).click();
  await nativePage.getByRole('button',{name:'Google Maps',exact:true}).click();
  assert.deepEqual(await nativePage.evaluate(()=>nativeCalls),['waze','googleMaps']);
@@ -40,6 +41,7 @@ const http=require('node:http');const fs=require('node:fs');const path=require('
  assert.equal(await nativePage.locator('[data-component]').count(),5);
  await nativePage.locator('[data-filter="system"]').click();assert.equal(await nativePage.locator('[data-component]').count(),4);
  await nativePage.locator('[data-favorite="com.vendor.bt/.Phone"]').click();
+ await nativePage.locator('[data-page="home"]').click();assert.equal(await nativePage.locator('.home-favorites [data-component="com.vendor.bt/.Phone"]').count(),1);await nativePage.locator('[data-page="apps"]').click();
  await nativePage.locator('[data-filter="favorites"]').click();assert.equal(await nativePage.locator('[data-component]').count(),1);
  await nativePage.locator('[data-component="com.vendor.bt/.Phone"]').click();
  assert.equal(await nativePage.evaluate(()=>nativeCalls[nativeCalls.length-1]),'com.vendor.bt/.Phone');

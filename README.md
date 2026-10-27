@@ -6,7 +6,14 @@ Primera versión de un launcher Android para Isias, con interfaz oscura inspirad
 
 [Descargar SkyNCar.apk](https://github.com/isiasromero/SkyNCar/raw/refs/heads/main/downloads/SkyNCar.apk)
 
-Versión inicial de desarrollo 0.2.0. El APK publicado está en `downloads/`; su checksum SHA-256 está en `downloads/SHA256SUMS`. Antes de instalar, revisar la compatibilidad indicada abajo. No incluye la clave privada de firma.
+Versión inicial de desarrollo 0.2.1. El APK publicado está en `downloads/`; su checksum SHA-256 está en `downloads/SHA256SUMS`. Antes de instalar, revisar la compatibilidad indicada abajo. No incluye la clave privada de firma.
+
+## Actualización 0.2.1
+
+- Las apps marcadas con ☆ aparecen como accesos directos en **Mis aplicaciones favoritas** del inicio. **Ver todas las apps** mantiene disponible la lista completa.
+- Botón fijo **Mi perfil** en la barra izquierda, accesible aunque la lista de secciones tenga desplazamiento. Abre el campo **Tu nombre para el saludo** y el botón **Guardar preferencias**; el nombre persiste entre reinicios.
+- Botón fijo **Android** en la cabecera para abrir directamente los ajustes completos que ofrece el dispositivo, además del acceso en Ajustes de SkyNCar.
+- Continúan disponibles los accesos a aplicaciones originales y el botón para elegir otro launcher. No hay modo kiosco ni políticas que restrinjan Android; las restricciones y permisos propios del fabricante siguen dependiendo del equipo.
 
 ## Actualización 0.2.0
 
