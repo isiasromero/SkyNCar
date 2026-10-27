@@ -17,6 +17,43 @@ const http=require('node:http');const fs=require('node:fs');const path=require('
  await page.locator('[data-page="home"]').click();await page.locator('#sleep').click();assert(await page.locator('#rest').isVisible());await page.locator('#wake').click();assert(!(await page.locator('#rest').isVisible()));
  for(const viewport of [{width:1024,height:600},{width:800,height:480},{width:1280,height:720}]){await page.setViewportSize(viewport);assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));}
  await page.setViewportSize({width:1024,height:600});await page.locator('[data-page="settings"]').click();await page.locator('[name="name"]').fill('Isias');await page.locator('[name="theme"]').selectOption('dark');await page.getByText('Guardar preferencias',{exact:true}).click();await page.locator('[data-page="home"]').click();
+ // Exercise the UI contract with native-style factory activities, not fake hardware claims.
+ const nativePage=await browser.newPage({viewport:{width:1024,height:600}});
+ await nativePage.addInitScript(()=>{
+   window.nativeCalls=[];
+   const apps=[
+     {name:'Radio FM original',package:'com.vendor.fm',component:'com.vendor.fm/.Radio',system:true},
+     {name:'Bluetooth original',package:'com.vendor.bt',component:'com.vendor.bt/.Music',system:true},
+     {name:'Teléfono original',package:'com.vendor.bt',component:'com.vendor.bt/.Phone',system:true},
+     {name:'Waze',package:'com.waze',component:'com.waze/.Main',system:false},
+     {name:'Inicio de fábrica',package:'com.vendor.home',component:'com.vendor.home/.Home',system:true}
+   ];
+   window.SkyNative={load:()=>localStorage.getItem('nativeProfile')||'{}',save:j=>localStorage.setItem('nativeProfile',j),apps:()=>JSON.stringify(apps),media:()=>'{"available":false}',assignments:()=>localStorage.getItem('assignments')||'{}',
+     setAssignment:(slot,id)=>{const a=JSON.parse(localStorage.getItem('assignments')||'{}');a[slot]={id,name:apps.find(x=>x.component===id).name};localStorage.setItem('assignments',JSON.stringify(a));},
+     open:a=>window.nativeCalls.push(a),app:a=>window.nativeCalls.push(a)};
+ });
+ await nativePage.goto('http://127.0.0.1:'+server.address().port);
+ await nativePage.getByRole('button',{name:'Waze',exact:true}).click();
+ await nativePage.getByRole('button',{name:'Google Maps',exact:true}).click();
+ assert.deepEqual(await nativePage.evaluate(()=>nativeCalls),['waze','googleMaps']);
+ await nativePage.locator('[data-page="apps"]').click();
+ assert.equal(await nativePage.locator('[data-component]').count(),5);
+ await nativePage.locator('[data-filter="system"]').click();assert.equal(await nativePage.locator('[data-component]').count(),4);
+ await nativePage.locator('[data-favorite="com.vendor.bt/.Phone"]').click();
+ await nativePage.locator('[data-filter="favorites"]').click();assert.equal(await nativePage.locator('[data-component]').count(),1);
+ await nativePage.locator('[data-component="com.vendor.bt/.Phone"]').click();
+ assert.equal(await nativePage.evaluate(()=>nativeCalls[nativeCalls.length-1]),'com.vendor.bt/.Phone');
+ await nativePage.locator('[data-page="radio"]').click();await nativePage.getByRole('button',{name:'Elegir aplicación FM',exact:true}).click();
+ await nativePage.locator('#search').fill('com.vendor.fm');assert.equal(await nativePage.locator('[data-component]').count(),1);
+ await nativePage.locator('[data-component="com.vendor.fm/.Radio"]').click();
+ await nativePage.getByRole('button',{name:'Abrir radio FM',exact:true}).click();
+ assert.equal(await nativePage.evaluate(()=>nativeCalls[nativeCalls.length-1]),'radio');
+ await nativePage.reload();await nativePage.locator('[data-page="radio"]').click();assert.match(await nativePage.locator('#screen').innerText(),/Radio FM original/);
+ await nativePage.locator('[data-page="settings"]').click();await nativePage.locator('[data-pick="navigation"]').click();await nativePage.locator('[data-component="com.waze/.Main"]').click();
+ assert.match(await nativePage.locator('.app-assignments').innerText(),/Waze/);
+ await nativePage.locator('[data-pick="factory"]').click();await nativePage.locator('[data-component="com.vendor.home/.Home"]').click();await nativePage.locator('[data-page="home"]').click();await nativePage.locator('[data-action="factory"]').click();assert.equal(await nativePage.evaluate(()=>nativeCalls[nativeCalls.length-1]),'factory');
+ await nativePage.close();
+ console.log('Native bridge UI contract: factory/system activities, search, favorites, distinct Waze/Maps, FM assignment persistence and original home access passed.');
  const output=path.resolve(__dirname,'../build');fs.mkdirSync(output,{recursive:true});await page.screenshot({path:path.join(output,'home.png')});assert.deepEqual(errors,[]);console.log('UI: nine screens, profile and oil persistence, themes, rest and 3 sizes passed.');
  }finally{if(browser)await browser.close();await new Promise(r=>server.close(r));}
 })().catch(e=>{console.error(e);process.exitCode=1;});

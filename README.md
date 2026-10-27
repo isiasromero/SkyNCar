@@ -6,7 +6,31 @@ Primera versión de un launcher Android para Isias, con interfaz oscura inspirad
 
 [Descargar SkyNCar.apk](https://github.com/isiasromero/SkyNCar/raw/refs/heads/main/downloads/SkyNCar.apk)
 
-Versión inicial de desarrollo 0.1.0. El APK publicado está en `downloads/`; su checksum SHA-256 está en `downloads/SHA256SUMS`. Antes de instalar, revisar la compatibilidad indicada abajo. No incluye la clave privada de firma.
+Versión inicial de desarrollo 0.2.0. El APK publicado está en `downloads/`; su checksum SHA-256 está en `downloads/SHA256SUMS`. Antes de instalar, revisar la compatibilidad indicada abajo. No incluye la clave privada de firma.
+
+## Actualización 0.2.0
+
+- Radio FM y Todas las apps visibles desde el inicio; Radio FM y Apps suben en la barra lateral.
+- Botones independientes Waze / Google Maps y elección de navegador preferido.
+- Lista de actividades LAUNCHER, INFO y HOME que Android permite abrir: iconos reales, buscador por nombre/paquete, filtros Todas/Del equipo/Favoritas y favoritos persistentes. Se conservan diferentes actividades del mismo paquete (por ejemplo, teléfono y música Bluetooth).
+- Selector de aplicaciones originales para FM, navegación, música, Bluetooth, teléfono e inicio de fábrica desde Ajustes. La selección persiste.
+- Actualización de la lista al regresar al launcher y botón de recarga manual.
+- No se desinstalan, deshabilitan ni borran apps, servicios, archivos ni datos del fabricante. Las actividades no exportadas y los servicios sin interfaz no pueden abrirse; no se inventan accesos a ellos.
+- Sigue sin incrustarse Waze/Google Maps dentro de la tarjeta: cada uno abre su aplicación.
+
+### Cómo configurar las aplicaciones del equipo
+
+1. Instalar esta actualización sobre la anterior, sin desinstalar SkyNCar.
+2. Abrir **Apps → Todas** o **Del equipo**, comprobar la lista y usar Actualizar lista si se acaba de instalar otra app.
+3. Abrir **Radio FM → Elegir aplicación FM** y seleccionar la app original. Se sugieren posibles coincidencias por nombre, pero la elección es manual.
+4. En **Ajustes → Aplicaciones preferidas del radio**, vincular Bluetooth, teléfono, música, navegador e inicio original. Solo se crean asociaciones en SkyNCar.
+5. El acceso **Inicio original** permite volver a la interfaz del fabricante una vez elegido. También se puede cambiar la app de inicio predeterminada desde Ajustes de Android.
+
+No se garantiza que todas las funciones propietarias del equipo tengan actividades exportadas. Si falta alguna, hace falta inspeccionar el modelo, paquetes y actividades reales del radio; las pruebas de navegador usan una simulación explícita del puente nativo y no prueban el hardware.
+
+## Actualización 0.1.1
+
+Icono propio de SkyNCar, con monograma SN blanco y rojo velvet, e icono adaptativo para Android 8+. La actualización mantiene las preferencias y usa la misma clave local de firma.
 
 ## Estado de esta versión
 
@@ -53,7 +77,7 @@ npm install --prefix /workspace/tools/ui-check --cache /workspace/tools/npm-cach
 NODE_PATH=/workspace/tools/ui-check/node_modules CHROMIUM_PATH=/usr/bin/chromium node tests/ui.smoke.cjs
 ```
 
-Chromium debe estar instalado. La prueba levanta un servidor interno temporal, comprueba navegación por las nueve secciones, persistencia de nombre/tema/mantenimiento, modo reposo y tres tamaños de pantalla. Cierra servidor y navegador al terminar y escribe una captura en `build/home.png`. No valida el puente nativo de Android ni hardware.
+Chromium debe estar instalado. La prueba levanta un servidor interno temporal, comprueba navegación por las nueve secciones, persistencia de nombre/tema/mantenimiento, modo reposo y tres tamaños de pantalla. Además comprueba con un puente nativo simulado los filtros de apps del sistema, actividades distintas de un mismo paquete, búsqueda, favoritas, elección persistente de FM, navegador e inicio original y botones separados para Waze/Maps. Cierra servidor y navegador al terminar y escribe una captura en `build/home.png`. No valida el puente nativo de Android ni hardware.
 
 ## Estructura
 

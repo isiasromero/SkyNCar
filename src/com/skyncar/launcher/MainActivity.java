@@ -35,6 +35,22 @@ public class MainActivity extends Activity {
         // android_asset is available even with general file access disabled.
         web.loadUrl("file:///android_asset/index.html");
     }
+    @Override protected void onResume(){
+        super.onResume();
+        if(web!=null)web.evaluateJavascript("window.refreshInstalledApps && window.refreshInstalledApps()",null);
+    }
+    private boolean assigned(String slot){
+        String value=prefs.getString("app_"+slot,"");
+        if(value.isEmpty())return false;
+        ComponentName component=ComponentName.unflattenFromString(value);
+        if(component==null)return packageLaunch(value);
+        try {
+            ActivityInfo info=getPackageManager().getActivityInfo(component,0);
+            if(!info.exported || !info.enabled || !info.applicationInfo.enabled)return false;
+            launch(new Intent(Intent.ACTION_MAIN).setComponent(component).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return true;
+        }catch(PackageManager.NameNotFoundException e){return false;}
+    }
     @Override public void onBackPressed(){ web.evaluateJavascript("window.go && window.go('home')",null); }
     @Override protected void onDestroy(){ web.removeJavascriptInterface("SkyNative"); web.destroy(); super.onDestroy(); }
     private void message(final String text){ runOnUiThread(new Runnable(){ public void run(){Toast.makeText(MainActivity.this,text,Toast.LENGTH_LONG).show();} }); }
@@ -53,30 +69,80 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void save(String json){try {new JSONObject(json); if(json.length()<10000)prefs.edit().putString("profile",json).apply();}catch(JSONException ignored){} }
         @JavascriptInterface public void open(String action){
             switch(action){
-                case "maps": if(!packageLaunch("com.waze") && !packageLaunch("com.google.android.apps.maps"))launch(new Intent(Intent.ACTION_VIEW,Uri.parse("geo:0,0?q=")));break;
-                case "music": if(!packageLaunch("com.spotify.music") && !packageLaunch("com.google.android.apps.youtube.music"))launch(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MUSIC));break;
-                case "phone": launch(new Intent(Intent.ACTION_DIAL)); break;
-                case "bluetooth": launch(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));break;
+                case "maps": if(assigned("navigation"))break; if(!packageLaunch("com.waze") && !packageLaunch("com.google.android.apps.maps"))launch(new Intent(Intent.ACTION_VIEW,Uri.parse("geo:0,0?q=")));break;
+                case "music": if(assigned("music"))break; if(!packageLaunch("com.spotify.music") && !packageLaunch("com.google.android.apps.youtube.music"))launch(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_APP_MUSIC));break;
+                case "phone": if(assigned("phone"))break; launch(new Intent(Intent.ACTION_DIAL)); break;
+                case "bluetooth": if(assigned("bluetooth"))break; launch(new Intent(Settings.ACTION_BLUETOOTH_SETTINGS));break;
                 case "settings": launch(new Intent(Settings.ACTION_SETTINGS));break;
                 case "mediaPermission": launch(new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS"));break;
                 case "homeSettings": launch(new Intent(Settings.ACTION_HOME_SETTINGS));break;
+                case "waze": if(!packageLaunch("com.waze"))message("Waze no está instalado o no está disponible");break;
+                case "googleMaps": if(!packageLaunch("com.google.android.apps.maps"))message("Google Maps no está instalado o no está disponible");break;
+                case "factory": if(!assigned("factory"))message("Elige el inicio original en Ajustes de SkyNCar");break;
                 case "radio":
+                    if(assigned("radio"))break;
                     String name=prefs.getString("radioPackage","");
-                    if(name.isEmpty() || !packageLaunch(name))message("Elige la aplicación de radio FM en Aplicaciones");break;
+                    if(name.isEmpty() || !packageLaunch(name))message("Elige la aplicación de radio FM en SkyNCar → Radio FM");break;
             }
         }
         @JavascriptInterface public String apps(){
             JSONArray result=new JSONArray();
-            Intent query=new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
-            List<ResolveInfo> apps=getPackageManager().queryIntentActivities(query,0);
-            Collections.sort(apps,new ResolveInfo.DisplayNameComparator(getPackageManager()));
+            PackageManager pm=getPackageManager();
+            List<ResolveInfo> list=new ArrayList<>();
+            for(String category:new String[]{Intent.CATEGORY_LAUNCHER,Intent.CATEGORY_INFO,Intent.CATEGORY_HOME}){
+                list.addAll(pm.queryIntentActivities(new Intent(Intent.ACTION_MAIN).addCategory(category),0));
+            }
+            Collections.sort(list,new ResolveInfo.DisplayNameComparator(pm));
             Set<String> seen=new HashSet<>();
-            for(ResolveInfo a:apps){String p=a.activityInfo.packageName;if(p.equals(getPackageName())||!seen.add(p))continue;
-                try {result.put(new JSONObject().put("name",a.loadLabel(getPackageManager()).toString()).put("package",p));}catch(JSONException ignored){} }
+            for(ResolveInfo a:list){
+                ActivityInfo info=a.activityInfo;
+                ComponentName component=new ComponentName(info.packageName,info.name);
+                String id=component.flattenToString();
+                if(info.packageName.equals(getPackageName()) || !info.exported || !info.enabled || !info.applicationInfo.enabled || !seen.add(id))continue;
+                try {
+                    android.graphics.drawable.Drawable drawable=a.loadIcon(pm);
+                    android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(64,64,android.graphics.Bitmap.Config.ARGB_8888);
+                    android.graphics.Canvas canvas=new android.graphics.Canvas(bitmap);
+                    drawable.setBounds(0,0,64,64);drawable.draw(canvas);
+                    java.io.ByteArrayOutputStream out=new java.io.ByteArrayOutputStream();
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);bitmap.recycle();
+                    result.put(new JSONObject().put("name",a.loadLabel(pm).toString())
+                        .put("package",info.packageName).put("component",id)
+                        .put("system",(info.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM)!=0)
+                        .put("icon","data:image/png;base64,"+android.util.Base64.encodeToString(out.toByteArray(),android.util.Base64.NO_WRAP)));
+                }catch(Exception ignored){
+                    try{result.put(new JSONObject().put("name",info.packageName).put("package",info.packageName).put("component",id).put("system",(info.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM)!=0));}catch(JSONException ignoredAgain){}
+                }
+            }
             return result.toString();
         }
-        @JavascriptInterface public void app(String pkg){packageLaunch(pkg);}
-        @JavascriptInterface public void radioApp(String pkg){if(getPackageManager().getLaunchIntentForPackage(pkg)!=null){prefs.edit().putString("radioPackage",pkg).apply();message("Aplicación de radio guardada");}}
+        @JavascriptInterface public void app(String id){
+            ComponentName c=ComponentName.unflattenFromString(id);
+            if(c==null){if(!packageLaunch(id))message("Aplicación no disponible");return;}
+            try{ActivityInfo info=getPackageManager().getActivityInfo(c,0);
+                if(info.exported && info.enabled && info.applicationInfo.enabled)launch(new Intent(Intent.ACTION_MAIN).setComponent(c));
+                else message("Esta actividad no está disponible");
+            }catch(PackageManager.NameNotFoundException e){message("La aplicación ya no está instalada");}
+        }
+        @JavascriptInterface public void setAssignment(String slot,String id){
+            if(!Arrays.asList("radio","navigation","music","bluetooth","phone","factory").contains(slot))return;
+            ComponentName c=ComponentName.unflattenFromString(id);if(c==null)return;
+            try{ActivityInfo info=getPackageManager().getActivityInfo(c,0);
+                if(info.exported && info.enabled && info.applicationInfo.enabled)prefs.edit().putString("app_"+slot,id).apply();
+            }catch(PackageManager.NameNotFoundException ignored){}
+        }
+        @JavascriptInterface public String assignments(){
+            JSONObject result=new JSONObject();
+            for(String slot:Arrays.asList("radio","navigation","music","bluetooth","phone","factory")){
+                String id=prefs.getString("app_"+slot,"");
+                if(id.isEmpty() && slot.equals("radio"))id=prefs.getString("radioPackage","");
+                if(id.isEmpty())continue;
+                try{ComponentName c=ComponentName.unflattenFromString(id);
+                    String label=c==null?getPackageManager().getApplicationLabel(getPackageManager().getApplicationInfo(id,0)).toString():getPackageManager().getActivityInfo(c,0).loadLabel(getPackageManager()).toString();
+                    result.put(slot,new JSONObject().put("id",id).put("name",label));
+                }catch(Exception ignored){}
+            }return result.toString();
+        }
         @JavascriptInterface public String media(){
             JSONObject o=new JSONObject(); MediaController c=controller();
             try {o.put("available",c!=null);if(c!=null){MediaMetadata m=c.getMetadata();PlaybackState s=c.getPlaybackState();
